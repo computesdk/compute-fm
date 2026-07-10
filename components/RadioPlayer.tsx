@@ -187,6 +187,17 @@ export default function RadioPlayer() {
     isLiveRef.current = isLive;
   }, [isLive]);
 
+  // Update the browser tab title to reflect the current track
+  useEffect(() => {
+    if (!station) return;
+    const track = station["current-track"];
+    if (!track || isAdBreak(track)) {
+      document.title = "compute.fm";
+    } else {
+      document.title = `${track.title} — ${track.artist} · compute.fm`;
+    }
+  }, [station?.["current-track"]?.title, station?.["current-track"]?.artist]);
+
   const toggleMute = () => {
     setMuted((m) => !m);
   };
@@ -252,26 +263,32 @@ export default function RadioPlayer() {
           <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
         </div>
         <p className="text-xs text-fm-muted max-w-md">
-          the sound of{" "}
-            <a
-              href="https://computesdk.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              ComputeSDK
-            </a>
-            , the independent compute{" "}
-            <a
-              href="https://computesdk.com/benchmarks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              benchmarking
-            </a>{" "}
-            company
+          the sound of ComputeSDK, the independent compute benchmarking company
         </p>
+        <div className="flex items-center gap-2.5">
+          <a
+            href="https://computesdk.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-fm-accent to-fm-accent2 text-white hover:opacity-90 transition-opacity shadow-sm shadow-fm-accent/20"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            ComputeSDK
+          </a>
+          <a
+            href="https://computesdk.com/benchmarks"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border border-fm-accent/50 bg-fm-accent/10 text-fm-accent hover:bg-fm-accent/20 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2" aria-hidden="true">
+              <path d="M3 3v18h18M7 14l4-4 3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Benchmarks
+          </a>
+        </div>
       </div>
 
       {/* Channel selector */}
