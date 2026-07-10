@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { channels, Live365Channel } from "@/lib/channels";
+import ThemeToggle from "@/components/ThemeToggle";
+
+const TWEET_INTENT =
+  "https://twitter.com/intent/tweet?text=" +
+  encodeURIComponent("@computesdk song request:  #computefm");
 
 interface Live365Track {
   title: string;
@@ -122,7 +127,7 @@ export default function RadioPlayer() {
           <div className="text-fm-muted text-sm">{error}</div>
           <button
             onClick={() => fetchStation(activeChannel.stationId)}
-            className="mt-4 px-4 py-2 bg-white/10 rounded-full text-sm hover:bg-white/20"
+            className="mt-4 px-4 py-2 bg-fm-text/10 rounded-full text-sm hover:bg-fm-text/20"
           >
             retry
           </button>
@@ -144,26 +149,34 @@ export default function RadioPlayer() {
       <audio ref={audioRef} preload="auto" />
 
       {/* Header */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-fm-text/10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <img
+            src="/logomark-light.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 rounded-lg block dark:hidden"
+          />
           <img
             src="/logomark-dark.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 rounded-lg"
+            className="w-10 h-10 rounded-lg hidden dark:block"
           />
           <div>
             <h1 className="text-xl font-bold tracking-tight">compute.fm</h1>
             <p className="text-xs text-fm-muted -mt-0.5">low management, high signal</p>
           </div>
         </div>
-        <div className="text-fm-muted text-sm font-mono tabular-nums">
-          {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <div className="text-fm-muted text-sm font-mono tabular-nums hidden sm:block">
+            {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </div>
         </div>
       </header>
 
       {/* Channel selector */}
       {channels.length > 1 && (
-        <div className="px-6 py-3 flex gap-2 justify-center border-b border-white/5 overflow-x-auto">
+        <div className="px-6 py-3 flex gap-2 justify-center border-b border-fm-text/10 overflow-x-auto">
           {channels.map((ch) => (
             <button
               key={ch.id}
@@ -171,7 +184,7 @@ export default function RadioPlayer() {
               className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                 ch.id === activeChannel.id
                   ? "bg-gradient-to-r from-fm-accent to-fm-accent2 text-white"
-                  : "bg-white/5 text-fm-muted hover:bg-white/10"
+                  : "bg-fm-text/5 text-fm-muted hover:bg-fm-text/10"
               }`}
             >
               {ch.name}
@@ -185,12 +198,12 @@ export default function RadioPlayer() {
         {/* Status badge */}
         <div className="flex items-center gap-3 animate-fade-in">
           <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
-            isLive ? "bg-fm-accent/20 text-fm-accent" : "bg-white/5 text-fm-muted"
+            isLive ? "bg-fm-accent/20 text-fm-accent" : "bg-fm-text/5 text-fm-muted"
           }`}>
             {isLive ? "● On Air" : "○ Standby"}
           </span>
           <span className="text-fm-muted text-sm">{activeChannel.name}</span>
-          {genreList && <span className="text-fm-muted/60 text-xs">· {genreList}</span>}
+          {genreList && <span className="text-fm-muted text-xs">· {genreList}</span>}
         </div>
 
         {/* Album art with prominent visualizer */}
@@ -230,7 +243,7 @@ export default function RadioPlayer() {
             <>
               <button
                 onClick={toggleMute}
-                className="px-6 py-3 bg-white/10 rounded-full font-semibold hover:bg-white/20 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-fm-text/10 rounded-full font-semibold hover:bg-fm-text/20 transition-colors flex items-center gap-2"
               >
                 {muted ? "🔇 Muted" : "🔊 Live"}
               </button>
@@ -252,10 +265,21 @@ export default function RadioPlayer() {
             </>
           )}
         </div>
+
+        {/* Song request CTA */}
+        <a
+          href={TWEET_INTENT}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-fm-text/5 text-fm-muted hover:text-fm-text hover:bg-fm-text/10 transition-colors"
+        >
+          <span>♫</span>
+          Got a song request? Tweet <span className="text-fm-accent font-semibold">@computesdk</span>
+        </a>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 px-6 py-3 text-center text-xs text-fm-muted">
+      <footer className="border-t border-fm-text/10 px-6 py-3 text-center text-xs text-fm-muted">
         compute.fm — {activeChannel.name} · licensed via Live365
       </footer>
     </div>

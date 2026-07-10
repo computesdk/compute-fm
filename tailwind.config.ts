@@ -5,16 +5,17 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         fm: {
-          bg: "#0a0f0c",
-          surface: "#111814",
-          accent: "#4ade80",
-          accent2: "#19874d",
-          text: "#f5f5fa",
-          muted: "#6b7280",
+          bg: "rgb(var(--fm-bg) / <alpha-value>)",
+          surface: "rgb(var(--fm-surface) / <alpha-value>)",
+          accent: "rgb(var(--fm-accent) / <alpha-value>)",
+          accent2: "rgb(var(--fm-accent2) / <alpha-value>)",
+          text: "rgb(var(--fm-text) / <alpha-value>)",
+          muted: "rgb(var(--fm-muted) / <alpha-value>)",
         },
       },
       animation: {
