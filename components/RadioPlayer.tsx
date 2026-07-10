@@ -78,15 +78,17 @@ export default function RadioPlayer() {
     if (!audio || !isLive) return;
     audio.src = station?.["stream-url"] || "";
     audio.load();
-    audio.volume = muted ? 0 : volume;
+    audio.muted = muted;
+    audio.volume = volume;
     audio.play().catch(() => {});
   }, [activeChannel.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Volume control
+  // Keep the audio element's mute/volume in sync with state
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = muted ? 0 : volume;
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = muted;
+    audio.volume = volume;
   }, [volume, muted]);
 
   const goLive = useCallback(() => {
@@ -94,8 +96,10 @@ export default function RadioPlayer() {
     if (!audio || !station) return;
     audio.src = station["stream-url"];
     audio.load();
-    audio.volume = muted ? 0 : volume;
+    audio.muted = false;
+    audio.volume = volume;
     audio.play().then(() => {
+      setMuted(false);
       setIsLive(true);
       isLiveRef.current = true;
       bcRef.current?.postMessage({ type: "started" });
@@ -103,7 +107,7 @@ export default function RadioPlayer() {
       setIsLive(false);
       isLiveRef.current = false;
     });
-  }, [station, muted, volume]);
+  }, [station, volume]);
 
   // Keep other tabs informed and only autoplay if nothing is playing elsewhere
   useEffect(() => {
@@ -161,6 +165,7 @@ export default function RadioPlayer() {
         window.addEventListener("keydown", unmute, { once: true });
         window.addEventListener("touchstart", unmute, { once: true });
       }).catch(() => {
+        audio.muted = false;
         setIsLive(false);
         isLiveRef.current = false;
       });
@@ -183,11 +188,7 @@ export default function RadioPlayer() {
   }, [isLive]);
 
   const toggleMute = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const newMuted = !muted;
-    setMuted(newMuted);
-    audio.volume = newMuted ? 0 : volume;
+    setMuted((m) => !m);
   };
 
   const switchChannel = (channel: Live365Channel) => {
