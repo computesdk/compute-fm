@@ -24,26 +24,6 @@ interface Live365Station {
   genres: string[] | { name: string; id: number }[];
 }
 
-function formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function parseTimestamp(ts: string): number {
-  return new Date(ts).getTime();
-}
-
-function getTrackProgress(track: Live365Track): { offset: number; remaining: number; progress: number } {
-  const startMs = parseTimestamp(track.start);
-  const now = Date.now();
-  const offset = Math.max(0, (now - startMs) / 1000);
-  const remaining = Math.max(0, track.duration - offset);
-  const progress = Math.min(1, offset / track.duration);
-  return { offset, remaining, progress };
-}
-
 function isAdBreak(track: Live365Track): boolean {
   return track.artist === "Live365" && track.title.includes("Ad Break");
 }
@@ -154,9 +134,7 @@ export default function RadioPlayer() {
   if (!station) return null;
 
   const track = station["current-track"];
-  const lastPlayed = station["last-played"] || [];
   const adBreak = isAdBreak(track);
-  const { offset, remaining, progress } = getTrackProgress(track);
   const genreList = (station.genres || [])
     .map((g) => typeof g === "string" ? g : g.name)
     .join(", ");
@@ -176,22 +154,14 @@ export default function RadioPlayer() {
             <p className="text-xs text-fm-muted -mt-0.5">low management, high signal</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          {isLive && (
-            <div className="flex items-center gap-2 text-fm-muted">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>{station.listeners || 0} listening</span>
-            </div>
-          )}
-          <div className="text-fm-muted font-mono tabular-nums">
-            {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </div>
+        <div className="text-fm-muted text-sm font-mono tabular-nums">
+          {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
       </header>
 
       {/* Channel selector */}
       {channels.length > 1 && (
-        <div className="px-6 py-3 flex gap-2 border-b border-white/5 overflow-x-auto">
+        <div className="px-6 py-3 flex gap-2 justify-center border-b border-white/5 overflow-x-auto">
           {channels.map((ch) => (
             <button
               key={ch.id}
@@ -208,165 +178,77 @@ export default function RadioPlayer() {
         </div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-6xl mx-auto w-full">
-        {/* Left: Now Playing + Visualizer */}
-        <div className="flex-1 flex flex-col gap-6">
-          {/* Show badge */}
-          <div className="flex items-center gap-3 animate-fade-in">
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
-              isLive
-                ? "bg-fm-accent/20 text-fm-accent"
-                : "bg-white/5 text-fm-muted"
-            }`}>
-              {isLive ? "● On Air" : "○ Standby"}
-            </span>
-            <span className="text-fm-muted text-sm">{activeChannel.name}</span>
-            {genreList && (
-              <span className="text-fm-muted/60 text-xs">· {genreList}</span>
-            )}
-          </div>
-
-          {/* Now Playing Card */}
-          <div className="bg-fm-surface rounded-2xl p-8 border border-white/5 animate-slide-up">
-            <div className="flex gap-6 items-start">
-              {/* Album art / visualizer */}
-              <div className="w-32 h-32 rounded-xl bg-gradient-to-br from-fm-accent/30 to-fm-accent2/30 flex-shrink-0 flex items-center justify-center overflow-hidden relative">
-                {track.art && !adBreak ? (
-                  <img
-                    src={track.art}
-                    alt={track.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Visualizer active={isLive} />
-                )}
-                {isLive && (
-                  <div className="absolute inset-0 pointer-events-none">
-                    <Visualizer active={true} overlay />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-fm-muted uppercase tracking-wider mb-1">
-                  {adBreak ? "Ad Break" : "Now Playing"}
-                </p>
-                <h2 className="text-2xl font-bold truncate">{track.title}</h2>
-                <p className="text-lg text-fm-muted truncate">{track.artist}</p>
-
-                {/* Progress bar */}
-                {!adBreak && (
-                  <div className="mt-4">
-                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-fm-accent to-fm-accent2 transition-all duration-1000 ease-linear"
-                        style={{ width: `${progress * 100}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1.5 text-xs text-fm-muted font-mono tabular-nums">
-                      <span>{formatTime(offset)}</span>
-                      <span>-{formatTime(remaining)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="mt-6 flex items-center gap-4">
-              {!isLive ? (
-                <button
-                  onClick={goLive}
-                  className="px-6 py-3 bg-gradient-to-r from-fm-accent to-fm-accent2 rounded-full font-semibold text-white hover:opacity-90 transition-opacity flex items-center gap-2"
-                >
-                  <span>▶</span> Tune In
-                </button>
-              ) : (
-                <button
-                  onClick={toggleMute}
-                  className="px-6 py-3 bg-white/10 rounded-full font-semibold hover:bg-white/20 transition-colors flex items-center gap-2"
-                >
-                  {muted ? "🔇 Muted" : "🔊 Live"}
-                </button>
-              )}
-
-              {/* Volume slider */}
-              {isLive && (
-                <div className="flex items-center gap-2 flex-1 max-w-[200px]">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={muted ? 0 : volume}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      setVolume(v);
-                      setMuted(v === 0);
-                    }}
-                    className="flex-1 accent-fm-accent"
-                  />
-                </div>
-              )}
-
-              <div className="ml-auto text-right">
-                <p className="text-xs text-fm-muted">Station</p>
-                <p className="text-sm font-mono tabular-nums text-fm-muted/60">
-                  {station.name}
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* Main content - centered hero */}
+      <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6">
+        {/* Status badge */}
+        <div className="flex items-center gap-3 animate-fade-in">
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
+            isLive ? "bg-fm-accent/20 text-fm-accent" : "bg-white/5 text-fm-muted"
+          }`}>
+            {isLive ? "● On Air" : "○ Standby"}
+          </span>
+          <span className="text-fm-muted text-sm">{activeChannel.name}</span>
+          {genreList && <span className="text-fm-muted/60 text-xs">· {genreList}</span>}
         </div>
 
-        {/* Right: Recently Played */}
-        <div className="lg:w-80 flex-shrink-0">
-          <div className="bg-fm-surface rounded-2xl p-5 border border-white/5">
-            <h3 className="text-sm font-semibold text-fm-muted uppercase tracking-wider mb-4">
-              Recently Played
-            </h3>
-            <div className="space-y-3">
-              {lastPlayed.length === 0 && (
-                <p className="text-sm text-fm-muted/50">No history yet</p>
-              )}
-              {lastPlayed.map((t, i) => {
-                const ad = isAdBreak(t);
-                return (
-                  <div key={i} className="flex items-start gap-3 group">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 overflow-hidden">
-                      {t.art && !ad ? (
-                        <img src={t.art} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-fm-muted">
-                          {ad ? "AD" : "♪"}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${ad ? "text-fm-muted/50" : ""}`}>
-                        {t.title}
-                      </p>
-                      <p className="text-xs text-fm-muted truncate">{t.artist}</p>
-                    </div>
-                    <span className="text-xs text-fm-muted font-mono tabular-nums">
-                      {formatTime(t.duration)}
-                    </span>
-                  </div>
-                );
-              })}
+        {/* Album art with prominent visualizer */}
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up">
+          {track.art && !adBreak ? (
+            <img src={track.art} alt={track.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-fm-accent/40 to-fm-accent2/40" />
+          )}
+          {/* Visualizer overlay across the bottom */}
+          {isLive && (
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+              <Visualizer active={true} />
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* About card */}
-          <div className="mt-4 bg-fm-surface rounded-2xl p-5 border border-white/5">
-            <h3 className="text-sm font-semibold text-fm-muted uppercase tracking-wider mb-2">About</h3>
-            <p className="text-sm text-fm-muted leading-relaxed">
-              compute.fm is a licensed internet radio station powered by Live365.
-              Everyone listening hears the same track at the same time, just like
-              traditional broadcast radio. No algorithms, no skip button.
-            </p>
-          </div>
+        {/* Track info */}
+        <div className="text-center max-w-lg px-4">
+          <p className="text-xs text-fm-muted uppercase tracking-widest mb-2">
+            {adBreak ? "Ad Break" : "Now Playing"}
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">{track.title}</h2>
+          <p className="text-xl text-fm-muted mt-1">{track.artist}</p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-4">
+          {!isLive ? (
+            <button
+              onClick={goLive}
+              className="px-8 py-4 bg-gradient-to-r from-fm-accent to-fm-accent2 rounded-full font-semibold text-white text-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+            >
+              <span>▶</span> Tune In
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={toggleMute}
+                className="px-6 py-3 bg-white/10 rounded-full font-semibold hover:bg-white/20 transition-colors flex items-center gap-2"
+              >
+                {muted ? "🔇 Muted" : "🔊 Live"}
+              </button>
+              <div className="flex items-center gap-2 w-40">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={muted ? 0 : volume}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setVolume(v);
+                    setMuted(v === 0);
+                  }}
+                  className="flex-1 accent-fm-accent"
+                />
+              </div>
+            </>
+          )}
         </div>
       </main>
 
@@ -378,28 +260,29 @@ export default function RadioPlayer() {
   );
 }
 
-// Visualizer component
-function Visualizer({ active, overlay }: { active: boolean; overlay?: boolean }) {
-  const bars = 5;
+// Prominent visualizer bars
+function Visualizer({ active }: { active: boolean }) {
+  const bars = 24;
   return (
-    <div className={`flex items-end justify-center gap-1 h-full w-full p-3 ${overlay ? "absolute inset-0" : ""}`}>
+    <div className="flex items-end justify-center gap-1 h-full w-full px-4 pb-4">
       {Array.from({ length: bars }).map((_, i) => (
         <div
           key={i}
           className="flex-1 bg-gradient-to-t from-fm-accent to-fm-accent2 rounded-full"
           style={{
             animation: active
-              ? `visualizer-bar ${0.4 + i * 0.15}s ease-in-out infinite alternate`
+              ? `visualizer-bar ${0.5 + (i % 5) * 0.18}s ease-in-out infinite alternate`
               : "none",
-            height: active ? undefined : "20%",
-            opacity: active ? (overlay ? 0.6 : 1) : 0.3,
+            animationDelay: `${(i % 7) * 0.09}s`,
+            height: active ? undefined : "15%",
+            opacity: active ? 0.9 : 0.3,
           }}
         />
       ))}
       <style>{`
         @keyframes visualizer-bar {
-          0% { height: 15%; }
-          100% { height: 85%; }
+          0% { height: 10%; }
+          100% { height: 100%; }
         }
       `}</style>
     </div>
