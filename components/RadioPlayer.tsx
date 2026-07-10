@@ -300,15 +300,6 @@ export default function RadioPlayer() {
       <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
         {/* Album art with prominent visualizer */}
         <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up group">
-          {/* LIVE indicator badge */}
-          {isLive && (
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm pointer-events-none">
-              <span className={`w-2 h-2 rounded-full ${muted ? "bg-gray-400" : "bg-red-500 animate-pulse"}`} />
-              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
-                {muted ? "Muted" : "Live"}
-              </span>
-            </div>
-          )}
           {track.art && !adBreak ? (
             <img src={track.art} alt={track.title} className="w-full h-full object-cover" />
           ) : (
@@ -351,6 +342,15 @@ export default function RadioPlayer() {
               )}
             </div>
           </button>
+          {/* LIVE indicator badge - after button so it renders on top */}
+          {isLive && (
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm pointer-events-none">
+              <span className={`w-2 h-2 rounded-full ${muted ? "bg-gray-400" : "bg-red-500 animate-pulse"}`} />
+              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
+                {muted ? "Muted" : "Live"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Track info */}
