@@ -238,20 +238,21 @@ export default function RadioPlayer() {
 
       {/* Brand - centered at top */}
       <div className="flex flex-col items-center text-center gap-2 pt-10 pb-2 px-6">
-        <img
-          src="/logomark-light.svg"
-          alt="ComputeSDK"
-          className="w-12 h-12 block dark:hidden"
-        />
-        <img
-          src="/logomark-dark.svg"
-          alt="ComputeSDK"
-          className="w-12 h-12 hidden dark:block"
-        />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">compute.fm</h1>
-          <p className="text-xs text-fm-muted mt-0.5">
-            the sound of{" "}
+        <div className="flex items-center gap-3">
+          <img
+            src="/logomark-light.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 block dark:hidden"
+          />
+          <img
+            src="/logomark-dark.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 hidden dark:block"
+          />
+          <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
+        </div>
+        <p className="text-xs text-fm-muted max-w-md">
+          the sound of{" "}
             <a
               href="https://computesdk.com"
               target="_blank"
@@ -270,8 +271,7 @@ export default function RadioPlayer() {
               benchmarking
             </a>{" "}
             company
-          </p>
-        </div>
+        </p>
       </div>
 
       {/* Channel selector */}
