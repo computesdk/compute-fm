@@ -6,7 +6,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const TWEET_INTENT =
   "https://twitter.com/intent/tweet?text=" +
-  encodeURIComponent("@computesdk song request:  #computefm");
+  encodeURIComponent("🎵 The sound of @computesdk needs to include: #computefm");
 
 interface Live365Track {
   title: string;
@@ -373,17 +373,17 @@ export default function RadioPlayer() {
           )}
         </div>
 
-        {/* Song request CTA */}
+        {/* Song request - subtle link */}
         <a
           href={TWEET_INTENT}
           target="_blank"
           rel="noopener noreferrer"
-          className="group inline-flex items-center gap-3 px-7 py-4 rounded-full text-base sm:text-lg font-semibold border-2 border-fm-accent/50 bg-fm-accent/10 text-fm-accent hover:bg-fm-accent hover:text-white hover:border-fm-accent transition-colors shadow-lg shadow-fm-accent/10"
+          className="inline-flex items-center gap-1.5 text-sm text-fm-muted hover:text-fm-accent transition-colors"
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
           </svg>
-          Got a song request? Tweet @computesdk
+          Request a song
         </a>
       </main>
     </div>
