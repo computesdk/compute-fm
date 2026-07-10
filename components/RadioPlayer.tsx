@@ -258,7 +258,7 @@ export default function RadioPlayer() {
       )}
 
       {/* Main content - centered hero */}
-      <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6">
+      <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
         {/* Status badge */}
         <div className="flex items-center gap-3 animate-fade-in">
           <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
@@ -341,11 +341,6 @@ export default function RadioPlayer() {
           Got a song request? Tweet <span className="text-fm-accent font-semibold">@computesdk</span>
         </a>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-fm-text/10 px-6 py-3 pb-16 xl:pb-3 text-center text-xs text-fm-muted">
-        compute.fm — {activeChannel.name}
-      </footer>
     </div>
   );
 }

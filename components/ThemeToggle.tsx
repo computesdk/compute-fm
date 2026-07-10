@@ -20,16 +20,29 @@ export default function ThemeToggle() {
     localStorage.setItem("theme", theme);
   }, [theme, mounted]);
 
-  const next = theme === "dark" ? "light" : "dark";
+  const options: { value: Theme; label: string; icon: string }[] = [
+    { value: "light", label: "Light", icon: "☀" },
+    { value: "dark", label: "Dark", icon: "☾" },
+  ];
 
   return (
-    <button
-      onClick={() => setTheme(next)}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
-      className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-fm-text/5 text-fm-muted hover:text-fm-text hover:bg-fm-text/10 transition-colors"
-    >
-      {theme === "dark" ? "☀" : "☾"}
-    </button>
+    <div className="inline-flex items-center rounded-full bg-fm-text/5 p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          onClick={() => setTheme(o.value)}
+          aria-label={`${o.label} mode`}
+          aria-pressed={theme === o.value}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            theme === o.value
+              ? "bg-fm-bg text-fm-text shadow-sm"
+              : "text-fm-muted hover:text-fm-text"
+          }`}
+        >
+          <span aria-hidden="true">{o.icon}</span>
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
