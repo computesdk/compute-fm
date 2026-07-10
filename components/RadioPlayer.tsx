@@ -237,28 +237,31 @@ export default function RadioPlayer() {
       </div>
 
       {/* Brand - subbrand of ComputeSDK */}
-      <div className="flex flex-col items-center text-center gap-1.5 pt-10 pb-2 px-6">
-        {/* Parent brand */}
+      <div className="flex flex-col items-center text-center gap-2 pt-10 pb-2 px-6">
+        {/* Parent brand lockup */}
         <a
           href="https://computesdk.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm font-medium text-fm-muted hover:text-fm-text transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-fm-text hover:text-fm-accent transition-colors"
         >
           <img
             src="/logomark-light.svg"
             alt="ComputeSDK"
-            className="w-4 h-4 block dark:hidden"
+            className="w-6 h-6 block dark:hidden rounded-md"
           />
           <img
             src="/logomark-dark.svg"
             alt="ComputeSDK"
-            className="w-4 h-4 hidden dark:block"
+            className="w-6 h-6 hidden dark:block rounded-md"
           />
           ComputeSDK
         </a>
-        {/* Product brand */}
-        <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
+        {/* Product brand with divider */}
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-8 h-px bg-fm-text/15" />
+          <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
+        </div>
         {/* Tagline */}
         <p className="text-xs text-fm-muted max-w-md">
           the sound of the independent compute benchmarking company
