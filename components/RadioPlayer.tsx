@@ -6,7 +6,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const TWEET_INTENT =
   "https://twitter.com/intent/tweet?text=" +
-  encodeURIComponent("@computesdk song request:  #computefm");
+  encodeURIComponent("🎵 The sound of @computesdk needs to include: #computefm");
 
 interface Live365Track {
   title: string;
@@ -247,42 +247,48 @@ export default function RadioPlayer() {
         <ThemeToggle />
       </div>
 
-      {/* Brand - centered at top */}
+      {/* Brand - subbrand of ComputeSDK */}
       <div className="flex flex-col items-center text-center gap-2 pt-10 pb-2 px-6">
-        <div className="flex items-center gap-3">
+        {/* Parent brand lockup */}
+        <a
+          href="https://computesdk.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm font-semibold text-fm-text hover:text-fm-accent transition-colors"
+        >
           <img
             src="/logomark-light.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 block dark:hidden"
+            className="w-6 h-6 block dark:hidden rounded-md"
           />
           <img
             src="/logomark-dark.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 hidden dark:block"
+            className="w-6 h-6 hidden dark:block rounded-md"
           />
+          ComputeSDK
+        </a>
+        {/* Product brand with divider */}
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-8 h-px bg-fm-text/15" />
           <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
         </div>
+        {/* Tagline */}
         <p className="text-xs text-fm-muted max-w-md">
-          the sound of{" "}
-            <a
-              href="https://computesdk.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              ComputeSDK
-            </a>
-            , the independent compute{" "}
-            <a
-              href="https://computesdk.com/benchmarks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              benchmarking
-            </a>{" "}
-            company
+          the sound of the independent compute benchmarking company
         </p>
+        {/* Benchmarks link - subtle navigation, not a CTA */}
+        <a
+          href="https://computesdk.com/benchmarks"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs font-medium text-fm-muted hover:text-fm-accent transition-colors mt-0.5"
+        >
+          View benchmarks
+          <svg viewBox="0 0 24 24" className="w-3 h-3 fill-none stroke-current stroke-2" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
       </div>
 
       {/* Channel selector */}
@@ -307,7 +313,7 @@ export default function RadioPlayer() {
       {/* Main content - centered hero */}
       <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
         {/* Album art with prominent visualizer */}
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up">
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up group">
           {track.art && !adBreak ? (
             <img src={track.art} alt={track.title} className="w-full h-full object-cover" />
           ) : (
@@ -315,8 +321,48 @@ export default function RadioPlayer() {
           )}
           {/* Visualizer overlay across the bottom */}
           {isLive && (
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end pointer-events-none">
               <Visualizer active={true} />
+            </div>
+          )}
+          {/* Play / mute button overlay */}
+          <button
+            onClick={!isLive ? goLive : toggleMute}
+            aria-label={!isLive ? "Tune in" : muted ? "Unmute" : "Mute"}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div
+              className={`flex items-center justify-center w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm text-white transition-all duration-200 ${
+                !isLive || muted
+                  ? "opacity-90 group-hover:scale-110"
+                  : "opacity-0 group-hover:opacity-90 group-hover:scale-110"
+              }`}
+            >
+              {!isLive ? (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current ml-1" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : muted ? (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current" aria-hidden="true">
+                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z" />
+                  <path d="M19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71z" />
+                  <path d="M4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current" aria-hidden="true">
+                  <path d="M3 9v6h4l5 5V4L7 9H3z" />
+                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+                </svg>
+              )}
+            </div>
+          </button>
+          {/* LIVE indicator badge - after button so it renders on top */}
+          {isLive && (
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm pointer-events-none">
+              <span className={`w-2 h-2 rounded-full ${muted ? "bg-gray-400" : "bg-red-500 animate-pulse"}`} />
+              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
+                {muted ? "Muted" : "Live"}
+              </span>
             </div>
           )}
         </div>
@@ -341,53 +387,17 @@ export default function RadioPlayer() {
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-4">
-          {!isLive ? (
-            <button
-              onClick={goLive}
-              className="px-8 py-4 bg-gradient-to-r from-fm-accent to-fm-accent2 rounded-full font-semibold text-white text-lg hover:opacity-90 transition-opacity flex items-center gap-2"
-            >
-              <span>▶</span> Tune In
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={toggleMute}
-                className="px-6 py-3 bg-fm-text/10 rounded-full font-semibold hover:bg-fm-text/20 transition-colors flex items-center gap-2"
-              >
-                {muted ? "🔇 Muted" : "🔊 Live"}
-              </button>
-              <div className="flex items-center gap-2 w-40">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={muted ? 0 : volume}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    setVolume(v);
-                    setMuted(v === 0);
-                  }}
-                  className="flex-1 accent-fm-accent"
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Song request CTA */}
+        {/* Song request - subtle link */}
         <a
           href={TWEET_INTENT}
           target="_blank"
           rel="noopener noreferrer"
-          className="group inline-flex items-center gap-3 px-7 py-4 rounded-full text-base sm:text-lg font-semibold border-2 border-fm-accent/50 bg-fm-accent/10 text-fm-accent hover:bg-fm-accent hover:text-white hover:border-fm-accent transition-colors shadow-lg shadow-fm-accent/10"
+          className="inline-flex items-center gap-1.5 text-sm text-fm-muted hover:text-fm-accent transition-colors"
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
           </svg>
-          Got a song request? Tweet @computesdk
+          Have a song request? Request a song on X
         </a>
       </main>
     </div>
