@@ -27,54 +27,34 @@ export default function RadioPlayer() {
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
   }, [updateNowPlaying]);
 
-  // Manage audio element
+  // Track the current loaded track ID to detect changes
+  const loadedTrackIdRef = useRef<string>("");
+
+  // When live and the scheduler moves to a new track, switch audio source
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !nowPlaying) return;
+    if (!audio || !nowPlaying || !isLive) return;
 
-    const expectedSrc = nowPlaying.track.src;
-    const currentSrc = audio.src;
+    if (loadedTrackIdRef.current === nowPlaying.track.id) return;
+    loadedTrackIdRef.current = nowPlaying.track.id;
 
-    // If track changed, load new source and seek to offset
-    if (!currentSrc.endsWith(expectedSrc.split("/").pop()!) || audio.paused) {
-      if (audio.src !== expectedSrc) {
-        audio.src = expectedSrc;
+    audio.src = nowPlaying.track.src;
+    audio.load();
+    const seekAndPlay = () => {
+      try {
+        audio.currentTime = nowPlaying.offset;
+      } catch {
+        // seek may fail if metadata not loaded yet
       }
-      audio.load();
-      const seek = () => {
-        try {
-          audio.currentTime = nowPlaying.offset;
-        } catch {
-          // seek may fail if metadata not loaded yet
-        }
-      };
-      if (audio.readyState >= 1) {
-        seek();
-      } else {
-        audio.addEventListener("loadedmetadata", seek, { once: true });
-      }
-    }
-  }, [nowPlaying?.track.id]);
-
-  // Auto-advance: when track naturally ends, scheduler picks the next one
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onEnded = () => {
-      // The scheduler will naturally point to the next track
-      const np = updateNowPlaying();
-      if (audio) {
-        audio.src = np.track.src;
-        audio.load();
-        audio.addEventListener("loadedmetadata", () => {
-          audio.currentTime = np.offset;
-          if (isLive) audio.play().catch(() => {});
-        }, { once: true });
-      }
+      audio.volume = muted ? 0 : volume;
+      audio.play().catch(() => {});
     };
-    audio.addEventListener("ended", onEnded);
-    return () => audio.removeEventListener("ended", onEnded);
-  }, [isLive, updateNowPlaying]);
+    if (audio.readyState >= 1) {
+      seekAndPlay();
+    } else {
+      audio.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+    }
+  }, [nowPlaying?.track.id, isLive, nowPlaying, muted, volume]);
 
   // Volume control
   useEffect(() => {
@@ -104,6 +84,7 @@ export default function RadioPlayer() {
     if (!audio || !nowPlaying) return;
     setConnected(true);
     setIsLive(true);
+    loadedTrackIdRef.current = nowPlaying.track.id;
     audio.src = nowPlaying.track.src;
     audio.load();
     audio.addEventListener("loadedmetadata", () => {
@@ -141,7 +122,7 @@ export default function RadioPlayer() {
 
   return (
     <div className="min-h-screen bg-fm-bg text-fm-text flex flex-col">
-      <audio ref={audioRef} crossOrigin="anonymous" preload="auto" />
+      <audio ref={audioRef} preload="auto" />
 
       {/* Header */}
       <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
