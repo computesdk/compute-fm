@@ -3,7 +3,7 @@ import RadioPlayer from "@/components/RadioPlayer";
 import { PartnersSidebar, PartnersBanner } from "@/components/PartnersSidebar";
 import { channels } from "@/lib/channels";
 
-const SITE_URL = "https://compute.fm";
+const SITE_URL = "https://www.compute.fm";
 const DEFAULT_TITLE = "compute.fm";
 const DEFAULT_DESCRIPTION =
   "low management, high signal — a synchronized internet radio station";
