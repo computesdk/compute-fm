@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const SITE_URL = "https://compute.fm";
+const SITE_URL = "https://www.compute.fm";
 const TITLE = "compute.fm";
 const DESCRIPTION =
   "low management, high signal — a synchronized internet radio station";
