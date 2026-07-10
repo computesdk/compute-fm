@@ -279,7 +279,7 @@ export default function RadioPlayer() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-fm-text/10 px-6 py-3 text-center text-xs text-fm-muted">
+      <footer className="border-t border-fm-text/10 px-6 py-3 pb-16 xl:pb-3 text-center text-xs text-fm-muted">
         compute.fm — {activeChannel.name} · licensed via Live365
       </footer>
     </div>

@@ -1,0 +1,88 @@
+{
+  "becomePartnerHref": "https://docs.google.com/document/d/1M3Fh63ev6Qr4LLTS8eCtvmFasBo-TfYfMTCgx-h7ppw/edit?tab=t.0#heading=h.p4wt0nskg2g4",
+  "sponsors": [
+    {
+      "name": "Namespace",
+      "tier": "platform",
+      "href": "https://namespace.so/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/namespace/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/namespace/bounded/logo-dark"
+    },
+    {
+      "name": "Latitude",
+      "tier": "silver",
+      "href": "https://latitude.sh/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/latitude/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/latitude/bounded/logo-dark"
+    },
+    {
+      "name": "Google Cloud Run",
+      "tier": "silver",
+      "href": "https://cloud.google.com/run?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/google-cloud-run/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/google-cloud-run/bounded/logo-dark"
+    },
+    {
+      "name": "Browserbase",
+      "tier": "bronze",
+      "href": "https://www.browserbase.com/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/browserbase/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/browserbase/bounded/logo-dark"
+    },
+    {
+      "name": "Tigris",
+      "tier": "bronze",
+      "href": "https://www.tigrisdata.com/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/tigris/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/tigris/bounded/logo-dark"
+    },
+    {
+      "name": "Neon",
+      "tier": "bronze",
+      "href": "https://neon.com/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/neon/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/neon/bounded/logo-dark"
+    },
+    {
+      "name": "GitBook",
+      "tier": "bronze",
+      "href": "https://www.gitbook.com/?utm_source=compute.fm&utm_medium=referral&utm_campaign=partner-link",
+      "logo": "https://logos.computesdk.com/api/svg/gitbook/bounded/logo-light",
+      "logoDark": "https://logos.computesdk.com/api/svg/gitbook/bounded/logo-dark"
+    }
+  ],
+  "tiers": [
+    {
+      "key": "gold",
+      "label": "★ GOLD",
+      "lineColor": "bg-[#b8860b]",
+      "textColor": "text-[#b8860b] dark:text-[#FFD700]",
+      "logoHeight": "h-11",
+      "slotHeight": "h-14"
+    },
+    {
+      "key": "silver",
+      "label": "★ SILVER",
+      "lineColor": "bg-[#c0c0c0]",
+      "textColor": "text-gray-500 dark:text-gray-300",
+      "logoHeight": "h-10",
+      "slotHeight": "h-12"
+    },
+    {
+      "key": "bronze",
+      "label": "+ BRONZE",
+      "lineColor": "bg-[#cd7f32]",
+      "textColor": "text-amber-700 dark:text-amber-600",
+      "logoHeight": "h-6",
+      "slotHeight": "h-9"
+    },
+    {
+      "key": "platform",
+      "label": "POWERED BY:",
+      "lineColor": "bg-emerald-600 dark:bg-emerald-400",
+      "textColor": "text-emerald-600 dark:text-emerald-400",
+      "logoHeight": "h-8",
+      "slotHeight": "h-10"
+    }
+  ]
+}
