@@ -1,60 +1,85 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { playlist } from "@/lib/playlist";
-import { getNowPlaying, getUpNext, formatTime, NowPlaying } from "@/lib/scheduler";
+import { channels, Live365Channel } from "@/lib/channels";
+import ThemeToggle from "@/components/ThemeToggle";
+
+const TWEET_INTENT =
+  "https://twitter.com/intent/tweet?text=" +
+  encodeURIComponent("@computesdk song request:  #computefm");
+
+interface Live365Track {
+  title: string;
+  artist: string;
+  art: string;
+  start: string;
+  duration: number;
+  end: string;
+  status: string;
+}
+
+interface Live365Station {
+  "mount-id": string;
+  name: string;
+  "stream-url": string;
+  "stream-hls-url": string;
+  listeners: number;
+  "current-track": Live365Track;
+  "last-played": Live365Track[];
+  genres: string[] | { name: string; id: number }[];
+}
+
+function isAdBreak(track: Live365Track): boolean {
+  return track.artist === "Live365" && track.title.includes("Ad Break");
+}
 
 export default function RadioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [activeChannel, setActiveChannel] = useState<Live365Channel>(channels[0]);
+  const [station, setStation] = useState<Live365Station | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(0.7);
-  const [connected, setConnected] = useState(false);
-  const [listeners, setListeners] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isLiveRef = useRef(false);
+  const bcRef = useRef<BroadcastChannel | null>(null);
+  const othersLiveRef = useRef(false);
+  const autoTriedRef = useRef(false);
 
-  const updateNowPlaying = useCallback(() => {
-    const np = getNowPlaying();
-    setNowPlaying(np);
-    return np;
+  const fetchStation = useCallback(async (stationId: string) => {
+    try {
+      const res = await fetch(`/api/now-playing?stationId=${stationId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setStation(data);
+      setError(null);
+    } catch {
+      setError("Failed to connect to Live365");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Sync to the broadcast clock
+  // Fetch station data on mount and when channel changes
   useEffect(() => {
-    updateNowPlaying();
-    tickRef.current = setInterval(updateNowPlaying, 1000);
+    setLoading(true);
+    fetchStation(activeChannel.stationId);
+    if (tickRef.current) clearInterval(tickRef.current);
+    tickRef.current = setInterval(() => fetchStation(activeChannel.stationId), 10000);
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [updateNowPlaying]);
+  }, [activeChannel.stationId, fetchStation]);
 
-  // Track the current loaded track ID to detect changes
-  const loadedTrackIdRef = useRef<string>("");
-
-  // When live and the scheduler moves to a new track, switch audio source
+  // Switch stream when channel changes and live
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !nowPlaying || !isLive) return;
-
-    if (loadedTrackIdRef.current === nowPlaying.track.id) return;
-    loadedTrackIdRef.current = nowPlaying.track.id;
-
-    audio.src = nowPlaying.track.src;
+    if (!audio || !isLive) return;
+    audio.src = station?.["stream-url"] || "";
     audio.load();
-    const seekAndPlay = () => {
-      try {
-        audio.currentTime = nowPlaying.offset;
-      } catch {
-        // seek may fail if metadata not loaded yet
-      }
-      audio.volume = muted ? 0 : volume;
-      audio.play().catch(() => {});
-    };
-    if (audio.readyState >= 1) {
-      seekAndPlay();
-    } else {
-      audio.addEventListener("loadedmetadata", seekAndPlay, { once: true });
-    }
-  }, [nowPlaying?.track.id, isLive, nowPlaying, muted, volume]);
+    audio.volume = muted ? 0 : volume;
+    audio.play().catch(() => {});
+  }, [activeChannel.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Volume control
   useEffect(() => {
@@ -63,39 +88,58 @@ export default function RadioPlayer() {
     }
   }, [volume, muted]);
 
-  // Fake listener count for ambiance (deterministic-ish based on time)
-  useEffect(() => {
-    if (!connected) return;
-    const update = () => {
-      const base = 47;
-      const hour = new Date().getHours();
-      const dayBoost = new Date().getDay() >= 5 ? 15 : 0;
-      const hourBoost = hour >= 9 && hour <= 17 ? 22 : hour >= 20 || hour <= 2 ? 18 : 0;
-      const jitter = Math.floor(Math.sin(Date.now() / 30000) * 5);
-      setListeners(Math.max(1, base + hourBoost + dayBoost + jitter));
-    };
-    update();
-    const iv = setInterval(update, 5000);
-    return () => clearInterval(iv);
-  }, [connected]);
-
-  const goLive = () => {
+  const goLive = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || !nowPlaying) return;
-    setConnected(true);
-    setIsLive(true);
-    loadedTrackIdRef.current = nowPlaying.track.id;
-    audio.src = nowPlaying.track.src;
+    if (!audio || !station) return;
+    audio.src = station["stream-url"];
     audio.load();
-    audio.addEventListener("loadedmetadata", () => {
-      audio.currentTime = nowPlaying.offset;
-      audio.volume = muted ? 0 : volume;
-      audio.play().catch(() => {
-        // Autoplay may be blocked - user needs to interact
-        setIsLive(false);
-      });
-    }, { once: true });
-  };
+    audio.volume = muted ? 0 : volume;
+    audio.play().then(() => {
+      setIsLive(true);
+      isLiveRef.current = true;
+      bcRef.current?.postMessage({ type: "started" });
+    }).catch(() => {
+      setIsLive(false);
+      isLiveRef.current = false;
+    });
+  }, [station, muted, volume]);
+
+  // Keep other tabs informed and only autoplay if nothing is playing elsewhere
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
+    const bc = new BroadcastChannel("compute-fm-playback");
+    bcRef.current = bc;
+    bc.onmessage = (ev) => {
+      const msg = ev.data;
+      if (!msg) return;
+      if (msg.type === "whoIsLive" && isLiveRef.current) {
+        bc.postMessage({ type: "live" });
+      } else if (msg.type === "live" || msg.type === "started") {
+        othersLiveRef.current = true;
+      }
+    };
+    bc.postMessage({ type: "whoIsLive" });
+    return () => {
+      bc.close();
+      bcRef.current = null;
+    };
+  }, []);
+
+  // Best-effort autoplay once, only if no other tab is already live
+  useEffect(() => {
+    if (autoTriedRef.current || !station || isLive) return;
+    autoTriedRef.current = true;
+    const t = setTimeout(() => {
+      if (othersLiveRef.current || isLiveRef.current) return;
+      bcRef.current?.postMessage({ type: "live" });
+      goLive();
+    }, 800 + Math.random() * 400);
+    return () => clearTimeout(t);
+  }, [station, isLive, goLive]);
+
+  useEffect(() => {
+    isLiveRef.current = isLive;
+  }, [isLive]);
 
   const toggleMute = () => {
     const audio = audioRef.current;
@@ -103,13 +147,15 @@ export default function RadioPlayer() {
     const newMuted = !muted;
     setMuted(newMuted);
     audio.volume = newMuted ? 0 : volume;
-    if (!newMuted && !isLive && audio.paused) {
-      setIsLive(true);
-      audio.play().catch(() => {});
-    }
   };
 
-  if (!nowPlaying) {
+  const switchChannel = (channel: Live365Channel) => {
+    if (channel.id === activeChannel.id) return;
+    setActiveChannel(channel);
+    setIsLive(false);
+  };
+
+  if (loading && !station) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-fm-muted animate-pulse">tuning...</div>
@@ -117,252 +163,213 @@ export default function RadioPlayer() {
     );
   }
 
-  const upNext = getUpNext(nowPlaying.trackIndex, 5);
-  const showName = nowPlaying.track.show || "On Air";
+  if (error && !station) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-fm-accent mb-2">signal lost</div>
+          <div className="text-fm-muted text-sm">{error}</div>
+          <button
+            onClick={() => fetchStation(activeChannel.stationId)}
+            className="mt-4 px-4 py-2 bg-fm-text/10 rounded-full text-sm hover:bg-fm-text/20"
+          >
+            retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!station) return null;
+
+  const track = station["current-track"];
+  const adBreak = isAdBreak(track);
+  const genreList = (station.genres || [])
+    .map((g) => typeof g === "string" ? g : g.name)
+    .join(", ");
 
   return (
     <div className="min-h-screen bg-fm-bg text-fm-text flex flex-col">
       <audio ref={audioRef} preload="auto" />
 
       {/* Header */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-fm-text/10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-fm-accent to-fm-accent2 flex items-center justify-center font-bold text-lg">
-            ▶
-          </div>
+          <img
+            src="/logomark-light.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 block dark:hidden"
+          />
+          <img
+            src="/logomark-dark.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 hidden dark:block"
+          />
           <div>
             <h1 className="text-xl font-bold tracking-tight">compute.fm</h1>
-            <p className="text-xs text-fm-muted -mt-0.5">low management, high signal</p>
+            <p className="text-xs text-fm-muted -mt-0.5">
+              brought to you by{" "}
+              <a
+                href="https://computesdk.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-fm-text hover:text-fm-accent transition-colors"
+              >
+                ComputeSDK
+              </a>
+              , an independent{" "}
+              <a
+                href="https://computesdk.com/benchmarks"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-fm-text hover:text-fm-accent transition-colors"
+              >
+                benchmark
+              </a>{" "}
+              company
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          {connected && (
-            <div className="flex items-center gap-2 text-fm-muted">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>{listeners} listening</span>
-            </div>
-          )}
-          <div className="text-fm-muted font-mono tabular-nums">
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <div className="text-fm-muted text-sm font-mono tabular-nums hidden sm:block">
             {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-6xl mx-auto w-full">
-        {/* Left: Now Playing + Visualizer */}
-        <div className="flex-1 flex flex-col gap-6">
-          {/* Show badge */}
-          <div className="flex items-center gap-3 animate-fade-in">
-            <span className="px-3 py-1 rounded-full bg-fm-accent/20 text-fm-accent text-xs font-semibold tracking-wider uppercase">
-              {isLive ? "● On Air" : "○ Standby"}
-            </span>
-            <span className="text-fm-muted text-sm">{showName}</span>
-          </div>
+      {/* Channel selector */}
+      {channels.length > 1 && (
+        <div className="px-6 py-3 flex gap-2 justify-center border-b border-fm-text/10 overflow-x-auto">
+          {channels.map((ch) => (
+            <button
+              key={ch.id}
+              onClick={() => switchChannel(ch)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                ch.id === activeChannel.id
+                  ? "bg-gradient-to-r from-fm-accent to-fm-accent2 text-white"
+                  : "bg-fm-text/5 text-fm-muted hover:bg-fm-text/10"
+              }`}
+            >
+              {ch.name}
+            </button>
+          ))}
+        </div>
+      )}
 
-          {/* Now Playing Card */}
-          <div className="bg-fm-surface rounded-2xl p-8 border border-white/5 animate-slide-up">
-            <div className="flex gap-6 items-start">
-              {/* Album art / visualizer */}
-              <div className="w-32 h-32 rounded-xl bg-gradient-to-br from-fm-accent/30 to-fm-accent2/30 flex-shrink-0 flex items-center justify-center overflow-hidden relative">
-                <Visualizer active={isLive} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-fm-muted uppercase tracking-wider mb-1">Now Playing</p>
-                <h2 className="text-2xl font-bold truncate">{nowPlaying.track.title}</h2>
-                <p className="text-lg text-fm-muted truncate">{nowPlaying.track.artist}</p>
-                {nowPlaying.track.album && (
-                  <p className="text-sm text-fm-muted/60 truncate mt-0.5">{nowPlaying.track.album}</p>
-                )}
-
-                {/* Progress bar */}
-                <div className="mt-4">
-                  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-fm-accent to-fm-accent2 transition-all duration-1000 ease-linear"
-                      style={{ width: `${nowPlaying.progress * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1.5 text-xs text-fm-muted font-mono tabular-nums">
-                    <span>{formatTime(nowPlaying.offset)}</span>
-                    <span>-{formatTime(nowPlaying.remaining)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="mt-6 flex items-center gap-4">
-              {!isLive ? (
-                <button
-                  onClick={goLive}
-                  className="px-6 py-3 bg-gradient-to-r from-fm-accent to-fm-accent2 rounded-full font-semibold text-white hover:opacity-90 transition-opacity flex items-center gap-2"
-                >
-                  <span>▶</span> Tune In
-                </button>
-              ) : (
-                <button
-                  onClick={toggleMute}
-                  className="px-6 py-3 bg-white/10 rounded-full font-semibold hover:bg-white/20 transition-colors flex items-center gap-2"
-                >
-                  {muted ? "🔇 Muted" : "🔊 Live"}
-                </button>
-              )}
-
-              {/* Volume slider */}
-              {isLive && (
-                <div className="flex items-center gap-2 flex-1 max-w-[200px]">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={muted ? 0 : volume}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      setVolume(v);
-                      setMuted(v === 0);
-                    }}
-                    className="flex-1 accent-fm-accent"
-                  />
-                </div>
-              )}
-
-              <div className="ml-auto text-right">
-                <p className="text-xs text-fm-muted">Broadcast Cycle</p>
-                <p className="text-sm font-mono tabular-nums text-fm-muted/60">
-                  {formatTime(nowPlaying.cyclePosition)} / {formatTime(nowPlaying.cycleDuration)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Schedule strip */}
-          <ScheduleStrip currentIndex={nowPlaying.trackIndex} />
+      {/* Main content - centered hero */}
+      <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
+        {/* Status badge */}
+        <div className="flex items-center gap-3 animate-fade-in">
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
+            isLive ? "bg-fm-accent/20 text-fm-accent" : "bg-fm-text/5 text-fm-muted"
+          }`}>
+            {isLive ? "● On Air" : "○ Standby"}
+          </span>
+          <span className="text-fm-muted text-sm">{activeChannel.name}</span>
+          {genreList && <span className="text-fm-muted text-xs">· {genreList}</span>}
         </div>
 
-        {/* Right: Up Next */}
-        <div className="lg:w-80 flex-shrink-0">
-          <div className="bg-fm-surface rounded-2xl p-5 border border-white/5">
-            <h3 className="text-sm font-semibold text-fm-muted uppercase tracking-wider mb-4">Up Next</h3>
-            <div className="space-y-3">
-              {upNext.map((track, i) => (
-                <div
-                  key={`${track.id}-${i}`}
-                  className="flex items-start gap-3 group cursor-default"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 flex items-center justify-center text-xs text-fm-muted font-mono">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate group-hover:text-fm-accent transition-colors">
-                      {track.title}
-                    </p>
-                    <p className="text-xs text-fm-muted truncate">{track.artist}</p>
-                    {track.show && (
-                      <p className="text-xs text-fm-muted/50 truncate mt-0.5">{track.show}</p>
-                    )}
-                  </div>
-                  <span className="text-xs text-fm-muted font-mono tabular-nums">
-                    {formatTime(track.duration)}
-                  </span>
-                </div>
-              ))}
+        {/* Album art with prominent visualizer */}
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up">
+          {track.art && !adBreak ? (
+            <img src={track.art} alt={track.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-fm-accent/40 to-fm-accent2/40" />
+          )}
+          {/* Visualizer overlay across the bottom */}
+          {isLive && (
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+              <Visualizer active={true} />
             </div>
-          </div>
-
-          {/* About card */}
-          <div className="mt-4 bg-fm-surface rounded-2xl p-5 border border-white/5">
-            <h3 className="text-sm font-semibold text-fm-muted uppercase tracking-wider mb-2">About</h3>
-            <p className="text-sm text-fm-muted leading-relaxed">
-              compute.fm is a synchronized internet radio station. Everyone
-              listening hears the same track at the same time, just like
-              traditional broadcast radio. No algorithms, no skip button.
-            </p>
-          </div>
+          )}
         </div>
+
+        {/* Track info */}
+        <div className="text-center max-w-lg px-4">
+          <p className="text-xs text-fm-muted uppercase tracking-widest mb-2">
+            {adBreak ? "Ad Break" : "Now Playing"}
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">{track.title}</h2>
+          <p className="text-xl text-fm-muted mt-1">{track.artist}</p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-4">
+          {!isLive ? (
+            <button
+              onClick={goLive}
+              className="px-8 py-4 bg-gradient-to-r from-fm-accent to-fm-accent2 rounded-full font-semibold text-white text-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+            >
+              <span>▶</span> Tune In
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={toggleMute}
+                className="px-6 py-3 bg-fm-text/10 rounded-full font-semibold hover:bg-fm-text/20 transition-colors flex items-center gap-2"
+              >
+                {muted ? "🔇 Muted" : "🔊 Live"}
+              </button>
+              <div className="flex items-center gap-2 w-40">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={muted ? 0 : volume}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setVolume(v);
+                    setMuted(v === 0);
+                  }}
+                  className="flex-1 accent-fm-accent"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Song request CTA */}
+        <a
+          href={TWEET_INTENT}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-fm-text/5 text-fm-muted hover:text-fm-text hover:bg-fm-text/10 transition-colors"
+        >
+          <span>♫</span>
+          Got a song request? Tweet <span className="text-fm-accent font-semibold">@computesdk</span>
+        </a>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-white/5 px-6 py-3 text-center text-xs text-fm-muted">
-        compute.fm — {playlist.length} tracks in rotation · {" "}
-        {Math.round(playlist.reduce((s, t) => s + t.duration, 0) / 60)} min cycle
-      </footer>
     </div>
   );
 }
 
-// Inline visualizer component
+// Prominent visualizer bars
 function Visualizer({ active }: { active: boolean }) {
-  const bars = 5;
+  const bars = 24;
   return (
-    <div className="flex items-end justify-center gap-1 h-full w-full p-3">
+    <div className="flex items-end justify-center gap-1 h-full w-full px-4 pb-4">
       {Array.from({ length: bars }).map((_, i) => (
         <div
           key={i}
           className="flex-1 bg-gradient-to-t from-fm-accent to-fm-accent2 rounded-full"
           style={{
             animation: active
-              ? `visualizer-bar ${0.4 + i * 0.15}s ease-in-out infinite alternate`
+              ? `visualizer-bar ${0.5 + (i % 5) * 0.18}s ease-in-out infinite alternate`
               : "none",
-            height: active ? undefined : "20%",
-            opacity: active ? 1 : 0.3,
+            animationDelay: `${(i % 7) * 0.09}s`,
+            height: active ? undefined : "15%",
+            opacity: active ? 0.9 : 0.3,
           }}
         />
       ))}
       <style>{`
         @keyframes visualizer-bar {
-          0% { height: 15%; }
-          100% { height: 85%; }
+          0% { height: 10%; }
+          100% { height: 100%; }
         }
       `}</style>
-    </div>
-  );
-}
-
-// Schedule strip showing the full rotation
-function ScheduleStrip({ currentIndex }: { currentIndex: number }) {
-  const shows = new Map<string, { start: number; end: number; tracks: number }>();
-  let pos = 0;
-  for (let i = 0; i < playlist.length; i++) {
-    const show = playlist[i].show || "Mixed";
-    if (!shows.has(show)) {
-      shows.set(show, { start: pos, end: 0, tracks: 0 });
-    }
-    const entry = shows.get(show)!;
-    entry.tracks++;
-    pos += playlist[i].duration;
-    entry.end = pos;
-  }
-
-  const totalDuration = pos;
-
-  return (
-    <div className="bg-fm-surface rounded-2xl p-5 border border-white/5">
-      <h3 className="text-sm font-semibold text-fm-muted uppercase tracking-wider mb-3">
-        Programming
-      </h3>
-      <div className="flex gap-2 h-12 rounded-lg overflow-hidden">
-        {Array.from(shows.entries()).map(([name, { start, end, tracks }]) => {
-          const width = ((end - start) / totalDuration) * 100;
-          const isCurrent = currentIndex >= 0 && playlist[currentIndex].show === name;
-          return (
-            <div
-              key={name}
-              className={`flex items-center justify-center px-2 text-xs font-medium text-center transition-all ${
-                isCurrent
-                  ? "bg-gradient-to-r from-fm-accent/40 to-fm-accent2/40 text-white"
-                  : "bg-white/5 text-fm-muted"
-              }`}
-              style={{ width: `${width}%` }}
-              title={`${name} — ${tracks} tracks`}
-            >
-              <span className="truncate">{name}</span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

@@ -4,17 +4,19 @@ const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,json}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         fm: {
-          bg: "#0a0a0f",
-          surface: "#12121a",
-          accent: "#e84393",
-          accent2: "#0984e3",
-          text: "#f5f5fa",
-          muted: "#636366",
+          bg: "rgb(var(--fm-bg) / <alpha-value>)",
+          surface: "rgb(var(--fm-surface) / <alpha-value>)",
+          accent: "rgb(var(--fm-accent) / <alpha-value>)",
+          accent2: "rgb(var(--fm-accent2) / <alpha-value>)",
+          text: "rgb(var(--fm-text) / <alpha-value>)",
+          muted: "rgb(var(--fm-muted) / <alpha-value>)",
         },
       },
       animation: {
