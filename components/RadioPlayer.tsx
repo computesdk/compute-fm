@@ -189,54 +189,51 @@ export default function RadioPlayer() {
     .join(", ");
 
   return (
-    <div className="min-h-screen bg-fm-bg text-fm-text flex flex-col">
+    <div className="relative min-h-screen bg-fm-bg text-fm-text flex flex-col">
       <audio ref={audioRef} preload="auto" />
 
-      {/* Header */}
-      <header className="border-b border-fm-text/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img
-            src="/logomark-light.svg"
-            alt="ComputeSDK"
-            className="w-10 h-10 block dark:hidden"
-          />
-          <img
-            src="/logomark-dark.svg"
-            alt="ComputeSDK"
-            className="w-10 h-10 hidden dark:block"
-          />
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">compute.fm</h1>
-            <p className="text-xs text-fm-muted -mt-0.5">
-              brought to you by{" "}
-              <a
-                href="https://computesdk.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-fm-text hover:text-fm-accent transition-colors"
-              >
-                ComputeSDK
-              </a>
-              , an independent{" "}
-              <a
-                href="https://computesdk.com/benchmarks"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-fm-text hover:text-fm-accent transition-colors"
-              >
-                benchmark
-              </a>{" "}
-              company
-            </p>
-          </div>
+      {/* Theme toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+
+      {/* Brand - centered at top */}
+      <div className="flex flex-col items-center text-center gap-2 pt-10 pb-2 px-6">
+        <img
+          src="/logomark-light.svg"
+          alt="ComputeSDK"
+          className="w-12 h-12 block dark:hidden"
+        />
+        <img
+          src="/logomark-dark.svg"
+          alt="ComputeSDK"
+          className="w-12 h-12 hidden dark:block"
+        />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">compute.fm</h1>
+          <p className="text-xs text-fm-muted mt-0.5">
+            brought to you by{" "}
+            <a
+              href="https://computesdk.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-fm-text hover:text-fm-accent transition-colors"
+            >
+              ComputeSDK
+            </a>
+            , an independent{" "}
+            <a
+              href="https://computesdk.com/benchmarks"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-fm-text hover:text-fm-accent transition-colors"
+            >
+              benchmark
+            </a>{" "}
+            company
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <div className="text-fm-muted text-sm font-mono tabular-nums hidden sm:block">
-            {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </div>
-        </div>
-      </header>
+      </div>
 
       {/* Channel selector */}
       {channels.length > 1 && (
