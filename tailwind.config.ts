@@ -9,12 +9,12 @@ const config: Config = {
     extend: {
       colors: {
         fm: {
-          bg: "#0a0a0f",
-          surface: "#12121a",
-          accent: "#e84393",
-          accent2: "#0984e3",
+          bg: "#0a0f0c",
+          surface: "#111814",
+          accent: "#4ade80",
+          accent2: "#19874d",
           text: "#f5f5fa",
-          muted: "#636366",
+          muted: "#6b7280",
         },
       },
       animation: {

@@ -146,9 +146,11 @@ export default function RadioPlayer() {
       {/* Header */}
       <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-fm-accent to-fm-accent2 flex items-center justify-center font-bold text-lg">
-            ▶
-          </div>
+          <img
+            src="/logomark-dark.svg"
+            alt="ComputeSDK"
+            className="w-10 h-10 rounded-lg"
+          />
           <div>
             <h1 className="text-xl font-bold tracking-tight">compute.fm</h1>
             <p className="text-xs text-fm-muted -mt-0.5">low management, high signal</p>
