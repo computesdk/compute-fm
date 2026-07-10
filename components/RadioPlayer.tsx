@@ -364,33 +364,6 @@ export default function RadioPlayer() {
           )}
         </div>
 
-        {/* Controls - only shown when live */}
-        {isLive && (
-          <div className="flex items-center gap-4">
-            <button
-              onClick={toggleMute}
-              className="px-6 py-3 bg-fm-text/10 rounded-full font-semibold hover:bg-fm-text/20 transition-colors flex items-center gap-2"
-            >
-              {muted ? "🔇 Muted" : "🔊 Live"}
-            </button>
-            <div className="flex items-center gap-2 w-40">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={muted ? 0 : volume}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setVolume(v);
-                  setMuted(v === 0);
-                }}
-                className="flex-1 accent-fm-accent"
-              />
-            </div>
-          </div>
-        )}
-
         {/* Song request CTA */}
         <a
           href={TWEET_INTENT}
