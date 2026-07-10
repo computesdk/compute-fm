@@ -187,6 +187,17 @@ export default function RadioPlayer() {
     isLiveRef.current = isLive;
   }, [isLive]);
 
+  // Update the browser tab title to reflect the current track
+  useEffect(() => {
+    if (!station) return;
+    const track = station["current-track"];
+    if (!track || isAdBreak(track)) {
+      document.title = "compute.fm";
+    } else {
+      document.title = `${track.title} — ${track.artist} · compute.fm`;
+    }
+  }, [station?.["current-track"]?.title, station?.["current-track"]?.artist]);
+
   const toggleMute = () => {
     setMuted((m) => !m);
   };
