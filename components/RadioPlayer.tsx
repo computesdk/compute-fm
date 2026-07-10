@@ -16,6 +16,7 @@ interface Live365Track {
   duration: number;
   end: string;
   status: string;
+  requestedBy?: string;
 }
 
 interface Live365Station {
@@ -125,17 +126,57 @@ export default function RadioPlayer() {
     };
   }, []);
 
-  // Best-effort autoplay once, only if no other tab is already live
+  // Autoplay once, only if no other tab is already live. Browsers block unmuted
+  // autoplay without a gesture, so fall back to muted playback and unmute on the
+  // first interaction anywhere on the page.
+  const attemptAutoplay = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !station || isLiveRef.current) return;
+    audio.src = station["stream-url"];
+    audio.load();
+    audio.muted = false;
+    audio.volume = volume;
+    const markLive = () => {
+      setIsLive(true);
+      isLiveRef.current = true;
+      bcRef.current?.postMessage({ type: "started" });
+    };
+    audio.play().then(() => {
+      setMuted(false);
+      markLive();
+    }).catch(() => {
+      audio.muted = true;
+      audio.play().then(() => {
+        setMuted(true);
+        markLive();
+        const unmute = () => {
+          audio.muted = false;
+          audio.volume = volume;
+          setMuted(false);
+          window.removeEventListener("pointerdown", unmute);
+          window.removeEventListener("keydown", unmute);
+          window.removeEventListener("touchstart", unmute);
+        };
+        window.addEventListener("pointerdown", unmute, { once: true });
+        window.addEventListener("keydown", unmute, { once: true });
+        window.addEventListener("touchstart", unmute, { once: true });
+      }).catch(() => {
+        setIsLive(false);
+        isLiveRef.current = false;
+      });
+    });
+  }, [station, volume]);
+
   useEffect(() => {
     if (autoTriedRef.current || !station || isLive) return;
     autoTriedRef.current = true;
     const t = setTimeout(() => {
       if (othersLiveRef.current || isLiveRef.current) return;
       bcRef.current?.postMessage({ type: "live" });
-      goLive();
+      attemptAutoplay();
     }, 800 + Math.random() * 400);
     return () => clearTimeout(t);
-  }, [station, isLive, goLive]);
+  }, [station, isLive, attemptAutoplay]);
 
   useEffect(() => {
     isLiveRef.current = isLive;
@@ -184,9 +225,6 @@ export default function RadioPlayer() {
 
   const track = station["current-track"];
   const adBreak = isAdBreak(track);
-  const genreList = (station.genres || [])
-    .map((g) => typeof g === "string" ? g : g.name)
-    .join(", ");
 
   return (
     <div className="relative min-h-screen bg-fm-bg text-fm-text flex flex-col">
@@ -212,7 +250,7 @@ export default function RadioPlayer() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">compute.fm</h1>
           <p className="text-xs text-fm-muted mt-0.5">
-            brought to you by{" "}
+            the sound of{" "}
             <a
               href="https://computesdk.com"
               target="_blank"
@@ -221,14 +259,14 @@ export default function RadioPlayer() {
             >
               ComputeSDK
             </a>
-            , an independent{" "}
+            , the independent compute{" "}
             <a
               href="https://computesdk.com/benchmarks"
               target="_blank"
               rel="noopener noreferrer"
               className="text-fm-text hover:text-fm-accent transition-colors"
             >
-              benchmark
+              benchmarking
             </a>{" "}
             company
           </p>
@@ -256,17 +294,6 @@ export default function RadioPlayer() {
 
       {/* Main content - centered hero */}
       <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
-        {/* Status badge */}
-        <div className="flex items-center gap-3 animate-fade-in">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase ${
-            isLive ? "bg-fm-accent/20 text-fm-accent" : "bg-fm-text/5 text-fm-muted"
-          }`}>
-            {isLive ? "● On Air" : "○ Standby"}
-          </span>
-          <span className="text-fm-muted text-sm">{activeChannel.name}</span>
-          {genreList && <span className="text-fm-muted text-xs">· {genreList}</span>}
-        </div>
-
         {/* Album art with prominent visualizer */}
         <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up">
           {track.art && !adBreak ? (
@@ -289,6 +316,17 @@ export default function RadioPlayer() {
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold leading-tight">{track.title}</h2>
           <p className="text-xl text-fm-muted mt-1">{track.artist}</p>
+          {track.requestedBy && !adBreak && (
+            <a
+              href={`https://x.com/${track.requestedBy}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-fm-accent/15 text-fm-accent hover:bg-fm-accent/25 transition-colors"
+            >
+              <span aria-hidden="true">♫</span>
+              Requested by @{track.requestedBy}
+            </a>
+          )}
         </div>
 
         {/* Controls */}
@@ -332,10 +370,12 @@ export default function RadioPlayer() {
           href={TWEET_INTENT}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-fm-text/5 text-fm-muted hover:text-fm-text hover:bg-fm-text/10 transition-colors"
+          className="group inline-flex items-center gap-3 px-7 py-4 rounded-full text-base sm:text-lg font-semibold border-2 border-fm-accent/50 bg-fm-accent/10 text-fm-accent hover:bg-fm-accent hover:text-white hover:border-fm-accent transition-colors shadow-lg shadow-fm-accent/10"
         >
-          <span>♫</span>
-          Got a song request? Tweet <span className="text-fm-accent font-semibold">@computesdk</span>
+          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          Got a song request? Tweet @computesdk
         </a>
       </main>
     </div>

@@ -2,6 +2,22 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+// Matches a requester marker embedded in a track title, e.g. "Song {req:@handle}"
+// or "Song [req: handle]". The handle is a valid X/Twitter username.
+const REQUESTER_RE = /\s*[[{]\s*req\s*:\s*@?([A-Za-z0-9_]{1,15})\s*[\]}]\s*/i;
+
+function applyRequester(track: unknown): unknown {
+  if (!track || typeof track !== "object") return track;
+  const t = track as { title?: unknown; requestedBy?: string };
+  if (typeof t.title !== "string") return track;
+  const match = t.title.match(REQUESTER_RE);
+  if (match) {
+    t.requestedBy = match[1];
+    t.title = t.title.replace(REQUESTER_RE, " ").trim();
+  }
+  return track;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const stationId = searchParams.get("stationId");
@@ -24,6 +40,12 @@ export async function GET(request: Request) {
     }
 
     const data = await res.json();
+    if (data && typeof data === "object") {
+      applyRequester(data["current-track"]);
+      if (Array.isArray(data["last-played"])) {
+        data["last-played"].forEach(applyRequester);
+      }
+    }
     return NextResponse.json(data, {
       headers: {
         "Cache-Control": "no-store, max-age=0",
