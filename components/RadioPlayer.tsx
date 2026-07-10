@@ -43,6 +43,10 @@ export default function RadioPlayer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isLiveRef = useRef(false);
+  const bcRef = useRef<BroadcastChannel | null>(null);
+  const othersLiveRef = useRef(false);
+  const autoTriedRef = useRef(false);
 
   const fetchStation = useCallback(async (stationId: string) => {
     try {
@@ -84,7 +88,7 @@ export default function RadioPlayer() {
     }
   }, [volume, muted]);
 
-  const goLive = () => {
+  const goLive = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !station) return;
     audio.src = station["stream-url"];
@@ -92,10 +96,50 @@ export default function RadioPlayer() {
     audio.volume = muted ? 0 : volume;
     audio.play().then(() => {
       setIsLive(true);
+      isLiveRef.current = true;
+      bcRef.current?.postMessage({ type: "started" });
     }).catch(() => {
       setIsLive(false);
+      isLiveRef.current = false;
     });
-  };
+  }, [station, muted, volume]);
+
+  // Keep other tabs informed and only autoplay if nothing is playing elsewhere
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
+    const bc = new BroadcastChannel("compute-fm-playback");
+    bcRef.current = bc;
+    bc.onmessage = (ev) => {
+      const msg = ev.data;
+      if (!msg) return;
+      if (msg.type === "whoIsLive" && isLiveRef.current) {
+        bc.postMessage({ type: "live" });
+      } else if (msg.type === "live" || msg.type === "started") {
+        othersLiveRef.current = true;
+      }
+    };
+    bc.postMessage({ type: "whoIsLive" });
+    return () => {
+      bc.close();
+      bcRef.current = null;
+    };
+  }, []);
+
+  // Best-effort autoplay once, only if no other tab is already live
+  useEffect(() => {
+    if (autoTriedRef.current || !station || isLive) return;
+    autoTriedRef.current = true;
+    const t = setTimeout(() => {
+      if (othersLiveRef.current || isLiveRef.current) return;
+      bcRef.current?.postMessage({ type: "live" });
+      goLive();
+    }, 800 + Math.random() * 400);
+    return () => clearTimeout(t);
+  }, [station, isLive, goLive]);
+
+  useEffect(() => {
+    isLiveRef.current = isLive;
+  }, [isLive]);
 
   const toggleMute = () => {
     const audio = audioRef.current;
@@ -154,16 +198,36 @@ export default function RadioPlayer() {
           <img
             src="/logomark-light.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 rounded-lg block dark:hidden"
+            className="w-10 h-10 block dark:hidden"
           />
           <img
             src="/logomark-dark.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 rounded-lg hidden dark:block"
+            className="w-10 h-10 hidden dark:block"
           />
           <div>
             <h1 className="text-xl font-bold tracking-tight">compute.fm</h1>
-            <p className="text-xs text-fm-muted -mt-0.5">low management, high signal</p>
+            <p className="text-xs text-fm-muted -mt-0.5">
+              brought to you by{" "}
+              <a
+                href="https://computesdk.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-fm-text hover:text-fm-accent transition-colors"
+              >
+                ComputeSDK
+              </a>
+              , an independent{" "}
+              <a
+                href="https://computesdk.com/benchmarks"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-fm-text hover:text-fm-accent transition-colors"
+              >
+                benchmark
+              </a>{" "}
+              company
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -280,7 +344,7 @@ export default function RadioPlayer() {
 
       {/* Footer */}
       <footer className="border-t border-fm-text/10 px-6 py-3 pb-16 xl:pb-3 text-center text-xs text-fm-muted">
-        compute.fm — {activeChannel.name} · licensed via Live365
+        compute.fm — {activeChannel.name}
       </footer>
     </div>
   );
