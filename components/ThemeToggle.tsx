@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 type Theme = "light" | "dark";
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
-    setTheme(stored === "dark" ? "dark" : "light");
+    setTheme(stored === "light" ? "light" : "dark");
     setMounted(true);
   }, []);
 

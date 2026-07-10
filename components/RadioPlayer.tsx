@@ -16,6 +16,7 @@ interface Live365Track {
   duration: number;
   end: string;
   status: string;
+  requestedBy?: string;
 }
 
 interface Live365Station {
@@ -125,17 +126,57 @@ export default function RadioPlayer() {
     };
   }, []);
 
-  // Best-effort autoplay once, only if no other tab is already live
+  // Autoplay once, only if no other tab is already live. Browsers block unmuted
+  // autoplay without a gesture, so fall back to muted playback and unmute on the
+  // first interaction anywhere on the page.
+  const attemptAutoplay = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !station || isLiveRef.current) return;
+    audio.src = station["stream-url"];
+    audio.load();
+    audio.muted = false;
+    audio.volume = volume;
+    const markLive = () => {
+      setIsLive(true);
+      isLiveRef.current = true;
+      bcRef.current?.postMessage({ type: "started" });
+    };
+    audio.play().then(() => {
+      setMuted(false);
+      markLive();
+    }).catch(() => {
+      audio.muted = true;
+      audio.play().then(() => {
+        setMuted(true);
+        markLive();
+        const unmute = () => {
+          audio.muted = false;
+          audio.volume = volume;
+          setMuted(false);
+          window.removeEventListener("pointerdown", unmute);
+          window.removeEventListener("keydown", unmute);
+          window.removeEventListener("touchstart", unmute);
+        };
+        window.addEventListener("pointerdown", unmute, { once: true });
+        window.addEventListener("keydown", unmute, { once: true });
+        window.addEventListener("touchstart", unmute, { once: true });
+      }).catch(() => {
+        setIsLive(false);
+        isLiveRef.current = false;
+      });
+    });
+  }, [station, volume]);
+
   useEffect(() => {
     if (autoTriedRef.current || !station || isLive) return;
     autoTriedRef.current = true;
     const t = setTimeout(() => {
       if (othersLiveRef.current || isLiveRef.current) return;
       bcRef.current?.postMessage({ type: "live" });
-      goLive();
+      attemptAutoplay();
     }, 800 + Math.random() * 400);
     return () => clearTimeout(t);
-  }, [station, isLive, goLive]);
+  }, [station, isLive, attemptAutoplay]);
 
   useEffect(() => {
     isLiveRef.current = isLive;
@@ -289,6 +330,17 @@ export default function RadioPlayer() {
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold leading-tight">{track.title}</h2>
           <p className="text-xl text-fm-muted mt-1">{track.artist}</p>
+          {track.requestedBy && !adBreak && (
+            <a
+              href={`https://x.com/${track.requestedBy}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-fm-accent/15 text-fm-accent hover:bg-fm-accent/25 transition-colors"
+            >
+              <span aria-hidden="true">♫</span>
+              Requested by @{track.requestedBy}
+            </a>
+          )}
         </div>
 
         {/* Controls */}
