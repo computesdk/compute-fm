@@ -236,42 +236,45 @@ export default function RadioPlayer() {
         <ThemeToggle />
       </div>
 
-      {/* Brand - centered at top */}
-      <div className="flex flex-col items-center text-center gap-2 pt-10 pb-2 px-6">
-        <div className="flex items-center gap-3">
+      {/* Brand - subbrand of ComputeSDK */}
+      <div className="flex flex-col items-center text-center gap-1.5 pt-10 pb-2 px-6">
+        {/* Parent brand */}
+        <a
+          href="https://computesdk.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-sm font-medium text-fm-muted hover:text-fm-text transition-colors"
+        >
           <img
             src="/logomark-light.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 block dark:hidden"
+            className="w-4 h-4 block dark:hidden"
           />
           <img
             src="/logomark-dark.svg"
             alt="ComputeSDK"
-            className="w-10 h-10 hidden dark:block"
+            className="w-4 h-4 hidden dark:block"
           />
-          <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
-        </div>
+          ComputeSDK
+        </a>
+        {/* Product brand */}
+        <h1 className="text-3xl font-bold tracking-tight">compute.fm</h1>
+        {/* Tagline */}
         <p className="text-xs text-fm-muted max-w-md">
-          the sound of{" "}
-            <a
-              href="https://computesdk.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              ComputeSDK
-            </a>
-            , the independent compute{" "}
-            <a
-              href="https://computesdk.com/benchmarks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fm-text hover:text-fm-accent transition-colors"
-            >
-              benchmarking
-            </a>{" "}
-            company
+          the sound of the independent compute benchmarking company
         </p>
+        {/* Benchmarks link - subtle navigation, not a CTA */}
+        <a
+          href="https://computesdk.com/benchmarks"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs font-medium text-fm-muted hover:text-fm-accent transition-colors mt-0.5"
+        >
+          View benchmarks
+          <svg viewBox="0 0 24 24" className="w-3 h-3 fill-none stroke-current stroke-2" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
       </div>
 
       {/* Channel selector */}
@@ -296,7 +299,7 @@ export default function RadioPlayer() {
       {/* Main content - centered hero */}
       <main className="flex-1 flex flex-col items-center justify-center gap-8 p-6 pb-24 xl:pb-6">
         {/* Album art with prominent visualizer */}
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up">
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-fm-accent/20 animate-slide-up group">
           {track.art && !adBreak ? (
             <img src={track.art} alt={track.title} className="w-full h-full object-cover" />
           ) : (
@@ -304,10 +307,41 @@ export default function RadioPlayer() {
           )}
           {/* Visualizer overlay across the bottom */}
           {isLive && (
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent flex items-end pointer-events-none">
               <Visualizer active={true} />
             </div>
           )}
+          {/* Play / mute button overlay */}
+          <button
+            onClick={!isLive ? goLive : toggleMute}
+            aria-label={!isLive ? "Tune in" : muted ? "Unmute" : "Mute"}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div
+              className={`flex items-center justify-center w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm text-white transition-all duration-200 ${
+                !isLive || muted
+                  ? "opacity-90 group-hover:scale-110"
+                  : "opacity-0 group-hover:opacity-90 group-hover:scale-110"
+              }`}
+            >
+              {!isLive ? (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current ml-1" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : muted ? (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current" aria-hidden="true">
+                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3z" />
+                  <path d="M19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71z" />
+                  <path d="M4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current" aria-hidden="true">
+                  <path d="M3 9v6h4l5 5V4L7 9H3z" />
+                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+                </svg>
+              )}
+            </div>
+          </button>
         </div>
 
         {/* Track info */}
