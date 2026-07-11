@@ -1,4 +1,11 @@
+import { withWorkflow } from "workflow/next";
+
 /** @type {import('next').NextConfig} */
-export default {
-  output: 'standalone',
+const nextConfig = {
+  output: "standalone",
+  experimental: {
+    serverComponentsExternalPackages: ["workflow"],
+  },
 };
+
+export default withWorkflow(nextConfig);
